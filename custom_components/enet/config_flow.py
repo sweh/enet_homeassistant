@@ -29,8 +29,15 @@ class EnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             errors = {}
             try:
+                host = user_input[CONF_HOST]
+                # Ensure HTTP protocol (no HTTPS/SSL to avoid certificate issues)
+                if not host.startswith("http://") and not host.startswith("https://"):
+                    host = f"http://{host}"
+                elif host.startswith("https://"):
+                    host = host.replace("https://", "http://")
+                
                 client = EnetClient(
-                    user_input[CONF_HOST],
+                    host,
                     user_input[CONF_USERNAME],
                     user_input[CONF_PASSWORD],
                 )
@@ -40,12 +47,15 @@ class EnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             else:
                 await self.async_set_unique_id(
-                    user_input[CONF_HOST].replace("http://", "").replace("https://", "")
+                    host.replace("http://", "").replace("https://", "")
                 )
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=user_input[CONF_HOST],
-                    data=user_input,
+                    title=host,
+                    data={
+                        **user_input,
+                        CONF_HOST: host,
+                    },
                 )
 
             return self.async_show_form(
