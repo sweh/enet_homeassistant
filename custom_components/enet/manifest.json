@@ -1,0 +1,10 @@
+{
+  "manifest_version": 1,
+  "domain": "enet",
+  "name": "eNet Smart Home",
+  "codeowners": ["@sweh"],
+  "config_flow": true,
+  "documentation": "https://github.com/sweh/enet_homeassistant",
+  "requirements": ["requests"],
+  "version": "1.0.0"
+}
