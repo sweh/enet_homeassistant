@@ -14,10 +14,11 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "enet"
 
 
-class EnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class EnetConfigFlow(config_entries.ConfigFlow):
     """Handle a config flow for eNet Smart Home."""
 
     VERSION = 1
+    domain = DOMAIN
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None

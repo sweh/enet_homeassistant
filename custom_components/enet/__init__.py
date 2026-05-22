@@ -8,6 +8,7 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platfor
 from homeassistant.core import HomeAssistant, Config
 from homeassistant.exceptions import ConfigEntryNotReady
 
+from .config_flow import EnetConfigFlow
 from .enet import EnetClient
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
