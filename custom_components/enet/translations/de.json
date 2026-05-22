@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "eNet Smart Home",
+        "description": "Geben Sie Ihre eNet-Serveranmeldedaten ein",
+        "data": {
+          "host": "Host (z.B. http://10.0.1.12)",
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zu eNet-Server fehlgeschlagen. Bitte überprüfen Sie Host, Benutzername und Passwort."
+    }
+  }
+}
