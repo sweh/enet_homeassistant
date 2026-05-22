@@ -1,4 +1,5 @@
 """Config flow for eNet Smart Home integration."""
+import asyncio
 import logging
 from typing import Any, Dict, Optional
 
@@ -6,6 +7,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
 from .enet import EnetClient
@@ -32,7 +34,7 @@ class EnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_USERNAME],
                     user_input[CONF_PASSWORD],
                 )
-                client.simple_login()
+                await asyncio.to_thread(client.simple_login)
             except Exception as err:
                 _LOGGER.error("Failed to connect to eNet: %s", err)
                 errors["base"] = "cannot_connect"

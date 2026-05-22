@@ -1,4 +1,5 @@
 """Support for eNet Smart Home light entities."""
+import asyncio
 import logging
 from typing import Any
 
@@ -22,7 +23,7 @@ async def async_setup_entry(
     client: EnetClient = hass.data[DOMAIN][config_entry.entry_id]
 
     try:
-        devices = client.get_devices()
+        devices = await asyncio.to_thread(client.get_devices)
     except Exception as err:
         _LOGGER.error("Failed to fetch eNet devices: %s", err)
         return
@@ -62,6 +63,7 @@ class EnetLight(LightEntity):
         self._attr_name = name
         self._attr_unique_id = channel.uid
         self._is_dimmable = is_dimmable
+        self._cached_value = channel.state  # Cache initial state
 
         if is_dimmable:
             self._attr_color_mode = ColorMode.BRIGHTNESS
@@ -75,15 +77,16 @@ class EnetLight(LightEntity):
         """Return brightness level (0-255)."""
         if not self._is_dimmable:
             return None
-        value = self._channel.get_value()
+        # Use cached value to avoid blocking call
+        value = self._cached_value
         # Convert from 0-100 to 0-255
         return int(value * 255 / 100)
 
     @property
     def is_on(self) -> bool:
         """Return true if light is on."""
-        value = self._channel.get_value()
-        return value > 0
+        # Use cached value to avoid blocking call
+        return self._cached_value > 0
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light."""
@@ -91,12 +94,15 @@ class EnetLight(LightEntity):
             brightness = kwargs["brightness"]
             # Convert from 0-255 to 0-100
             value = int(brightness * 100 / 255)
-            self._channel.set_value(value)
+            await asyncio.to_thread(self._channel.set_value, value)
+            self._cached_value = value
         else:
-            self._channel.set_value(100)
+            await asyncio.to_thread(self._channel.set_value, 100)
+            self._cached_value = 100
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
-        self._channel.set_value(0)
+        await asyncio.to_thread(self._channel.set_value, 0)
+        self._cached_value = 0
         self.async_write_ha_state()

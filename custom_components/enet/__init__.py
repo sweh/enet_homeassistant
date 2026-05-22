@@ -1,4 +1,5 @@
 """eNet Smart Home integration for Home Assistant."""
+import asyncio
 import logging
 from typing import Any, Dict, Final
 
@@ -43,7 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.data[CONF_USERNAME],
             entry.data[CONF_PASSWORD],
         )
-        client.simple_login()
+        await asyncio.to_thread(client.simple_login)
     except Exception as err:
         _LOGGER.error("Failed to connect to eNet server: %s", err)
         raise ConfigEntryNotReady from err

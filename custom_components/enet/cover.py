@@ -1,4 +1,5 @@
 """Support for eNet Smart Home cover devices (blinds/jalousies)."""
+import asyncio
 import logging
 from typing import Any
 
@@ -23,7 +24,7 @@ async def async_setup_entry(
     client: EnetClient = hass.data[DOMAIN][config_entry.entry_id]
 
     try:
-        devices = client.get_devices()
+        devices = await asyncio.to_thread(client.get_devices)
     except Exception as err:
         _LOGGER.error("Failed to fetch eNet devices: %s", err)
         return
@@ -55,11 +56,13 @@ class EnetCover(CoverEntity):
         self._channel = channel
         self._attr_name = name
         self._attr_unique_id = channel.uid
+        self._cached_value = channel.state  # Cache initial state
 
     @property
     def current_cover_position(self) -> int:
         """Return current position (0-100, where 100 is fully open)."""
-        value = self._channel.get_value()
+        # Use cached value to avoid blocking call
+        value = self._cached_value
         # eNet uses 0-100 where 0 is open, 100 is closed
         # HA uses 0=closed, 100=open
         return 100 - value
@@ -71,12 +74,14 @@ class EnetCover(CoverEntity):
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close the cover."""
-        self._channel.set_value(100)
+        await asyncio.to_thread(self._channel.set_value, 100)
+        self._cached_value = 100
         self.async_write_ha_state()
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
-        self._channel.set_value(0)
+        await asyncio.to_thread(self._channel.set_value, 0)
+        self._cached_value = 0
         self.async_write_ha_state()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
@@ -84,7 +89,8 @@ class EnetCover(CoverEntity):
         position = kwargs.get("position", 0)
         # Convert from HA (0=closed, 100=open) to eNet (0=open, 100=closed)
         enet_value = 100 - position
-        self._channel.set_value(enet_value)
+        await asyncio.to_thread(self._channel.set_value, enet_value)
+        self._cached_value = enet_value
         self.async_write_ha_state()
 
     async def async_stop_cover(self, **kwargs: Any) -> None:

@@ -1,4 +1,5 @@
 """Support for eNet Smart Home sensor entities."""
+import asyncio
 import logging
 from typing import Any
 
@@ -22,7 +23,7 @@ async def async_setup_entry(
     client: EnetClient = hass.data[DOMAIN][config_entry.entry_id]
 
     try:
-        devices = client.get_devices()
+        devices = await asyncio.to_thread(client.get_devices)
     except Exception as err:
         _LOGGER.error("Failed to fetch eNet devices: %s", err)
         return
@@ -62,12 +63,13 @@ class EnetLightSensor(SensorEntity):
         self._channel = channel
         self._attr_name = name
         self._attr_unique_id = channel.uid
+        self._cached_value = channel.state  # Cache initial state
 
     @property
     def native_value(self) -> float | None:
         """Return the current illuminance value."""
         try:
-            return float(self._channel.get_value())
+            return float(self._cached_value)
         except (ValueError, TypeError):
             return None
 
@@ -85,11 +87,12 @@ class EnetTemperatureSensor(SensorEntity):
         self._channel = channel
         self._attr_name = name
         self._attr_unique_id = channel.uid
+        self._cached_value = channel.state  # Cache initial state
 
     @property
     def native_value(self) -> float | None:
         """Return the current temperature value."""
         try:
-            return float(self._channel.get_value())
+            return float(self._cached_value)
         except (ValueError, TypeError):
             return None
