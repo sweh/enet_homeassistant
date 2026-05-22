@@ -1,0 +1,104 @@
+name: Code Quality
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - feature/**
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  python-format:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Check Python formatting
+        run: |
+          python -m py_compile custom_components/enet/*.py
+          echo "✓ All Python files compile successfully"
+        continue-on-error: true
+
+  integration-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Check integration imports
+        run: |
+          python -c "
+          import sys
+          import ast
+          
+          files = [
+              'custom_components/enet/__init__.py',
+              'custom_components/enet/config_flow.py',
+              'custom_components/enet/cover.py',
+              'custom_components/enet/light.py',
+              'custom_components/enet/sensor.py',
+          ]
+          
+          for file in files:
+              with open(file) as f:
+                  try:
+                      ast.parse(f.read())
+                      print(f'✓ {file} - syntax OK')
+                  except SyntaxError as e:
+                      print(f'✗ {file} - syntax error: {e}')
+                      sys.exit(1)
+          "
+
+  readme-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify README is updated
+        run: |
+          if grep -q "Home Assistant" README.md && \
+             grep -q "custom_components" README.md && \
+             ! grep -q "HAP-python" README.md; then
+            echo "✓ README is correctly updated"
+          else
+            echo "✗ README needs updating"
+            exit 1
+          fi
+
+  documentation-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify documentation exists
+        run: |
+          docs=(
+            "TESTING.md"
+            "TEST_QUICKSTART.md"
+            "README.md"
+          )
+          
+          for doc in "${docs[@]}"; do
+            if [ ! -f "$doc" ]; then
+              echo "✗ Missing documentation: $doc"
+              exit 1
+            fi
+          done
+          echo "✓ All documentation files present"

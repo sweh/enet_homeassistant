@@ -1,0 +1,6 @@
+{
+  "name": "eNet Smart Home",
+  "homeassistant": "2024.1.0",
+  "domains": ["cover", "light", "sensor"],
+  "iot_class": "local_polling"
+}
