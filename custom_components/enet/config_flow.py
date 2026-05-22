@@ -30,11 +30,9 @@ class EnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors = {}
             try:
                 host = user_input[CONF_HOST]
-                # Ensure HTTP protocol (no HTTPS/SSL to avoid certificate issues)
+                # Ensure protocol is specified (supports both http and https)
                 if not host.startswith("http://") and not host.startswith("https://"):
-                    host = f"http://{host}"
-                elif host.startswith("https://"):
-                    host = host.replace("https://", "http://")
+                    host = f"https://{host}"
                 
                 client = EnetClient(
                     host,

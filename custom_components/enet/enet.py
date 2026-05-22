@@ -63,7 +63,7 @@ class EnetClient:
         }
         self._api_counter += 1
         log.info("Requesting %s%s %s", self.baseurl, url, method)
-        response = self._session.post(f"{self.baseurl}{url}", json=req)
+        response = self._session.post(f"{self.baseurl}{url}", json=req, verify=False)
         if get_raw:
             return response
         if response.status_code >= 400:
