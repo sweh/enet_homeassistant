@@ -49,6 +49,7 @@ class EnetCover(CoverEntity):
 
     _attr_device_class = CoverDeviceClass.BLIND
     _attr_has_entity_name = True
+    _attr_should_poll = True
 
     def __init__(self, client: EnetClient, channel: Any, name: str) -> None:
         """Initialize the cover."""
@@ -71,6 +72,13 @@ class EnetCover(CoverEntity):
     def is_closed(self) -> bool:
         """Return True if cover is closed."""
         return self.current_cover_position == 0
+
+    async def async_update(self) -> None:
+        """Update the cover position from eNet server."""
+        try:
+            self._cached_value = await asyncio.to_thread(self._channel.get_value)
+        except Exception as err:
+            _LOGGER.debug("Failed to update cover %s: %s", self.name, err)
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close the cover."""

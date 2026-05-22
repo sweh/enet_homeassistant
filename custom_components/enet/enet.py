@@ -353,8 +353,10 @@ class Channel:
 
             if value_type_id == "VT_SCALING_RANGE_0_100_DEF_0":
                 self.has_brightness = True
-                self.state = value
+            
+            # Set state from the main output device function
             if main:
+                self.state = value
                 main_func = output_func
                 print(
                     f"    odf: {odf} {type_id} value type: {value_type_id} value: {value} main: {main}"

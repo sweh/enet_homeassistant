@@ -56,6 +56,7 @@ class EnetLightSensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.ILLUMINANCE
     _attr_has_entity_name = True
     _attr_native_unit_of_measurement = "lx"
+    _attr_should_poll = True
 
     def __init__(self, client: EnetClient, channel: Any, name: str) -> None:
         """Initialize the sensor."""
@@ -73,6 +74,13 @@ class EnetLightSensor(SensorEntity):
         except (ValueError, TypeError):
             return None
 
+    async def async_update(self) -> None:
+        """Update the sensor value from eNet server."""
+        try:
+            self._cached_value = await asyncio.to_thread(self._channel.get_value)
+        except Exception as err:
+            _LOGGER.debug("Failed to update light sensor %s: %s", self.name, err)
+
 
 class EnetTemperatureSensor(SensorEntity):
     """Representation of an eNet temperature sensor."""
@@ -80,6 +88,7 @@ class EnetTemperatureSensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_has_entity_name = True
     _attr_native_unit_of_measurement = "°C"
+    _attr_should_poll = True
 
     def __init__(self, client: EnetClient, channel: Any, name: str) -> None:
         """Initialize the sensor."""
@@ -96,3 +105,10 @@ class EnetTemperatureSensor(SensorEntity):
             return float(self._cached_value)
         except (ValueError, TypeError):
             return None
+
+    async def async_update(self) -> None:
+        """Update the sensor value from eNet server."""
+        try:
+            self._cached_value = await asyncio.to_thread(self._channel.get_value)
+        except Exception as err:
+            _LOGGER.debug("Failed to update temperature sensor %s: %s", self.name, err)

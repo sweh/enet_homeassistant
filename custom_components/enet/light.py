@@ -49,6 +49,7 @@ class EnetLight(LightEntity):
     """Representation of an eNet light/switch."""
 
     _attr_has_entity_name = True
+    _attr_should_poll = True
 
     def __init__(
         self,
@@ -87,6 +88,13 @@ class EnetLight(LightEntity):
         """Return true if light is on."""
         # Use cached value to avoid blocking call
         return self._cached_value > 0
+
+    async def async_update(self) -> None:
+        """Update the light state from eNet server."""
+        try:
+            self._cached_value = await asyncio.to_thread(self._channel.get_value)
+        except Exception as err:
+            _LOGGER.debug("Failed to update light %s: %s", self.name, err)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light."""
