@@ -1,11 +1,11 @@
 """eNet Smart Home integration for Home Assistant."""
 import logging
-from typing import Final
+from typing import Any, Dict, Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant, Config
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .enet import EnetClient
@@ -29,7 +29,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass: HomeAssistant, config: Config) -> bool:
+async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up eNet component."""
     hass.data[DOMAIN] = {}
     return True
