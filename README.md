@@ -8,6 +8,17 @@ This integration allows you to control and monitor:
 * Light sensors
 * Temperature sensors
 
+## Quick Start (HACS)
+
+1. **HACS** → Custom repositories → Add `https://github.com/sweh/enet_homeassistant` (Category: Integration)
+2. **HACS** → Integrations → Search "eNet" → Install
+3. **Restart** Home Assistant
+4. **Settings** → Devices & Services → Create Integration → eNet Smart Home
+5. Enter your eNet server credentials
+6. Done! 🎉
+
+👉 [Detailed HACS Installation Guide](HACS_INSTALLATION.md)
+
 ## Installation
 
 ### Via HACS (Recommended)
@@ -49,8 +60,14 @@ Add your eNet server to Home Assistant:
 * Light sensors (illuminance)
 * Temperature sensors
 
+## Testing
+
+- 🧪 [Testing Guide](TESTING.md) - Local testing with mock server
+- 🚀 [Quick Start Guide](TEST_QUICKSTART.md) - Fast validation commands
+
 ## References
 
 * [eNet Smart Home Documentation](https://www.enet-smarthome.com/de/ueber-enet/)
 * [Home Assistant Developer Docs](https://developers.home-assistant.io/)
 * Based on [enet-homeassistant](https://github.com/mnordseth/enet-homeassistant)
+
