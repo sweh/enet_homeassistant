@@ -5,6 +5,7 @@
   "config_flow": true,
   "documentation": "https://github.com/sweh/enet_homeassistant",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/sweh/enet_homeassistant/issues",
   "requirements": ["requests"],
-  "version": "1.0.0"
+  "version": "1.0.8"
 }
