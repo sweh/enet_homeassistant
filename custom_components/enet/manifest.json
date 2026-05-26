@@ -7,5 +7,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/sweh/enet_homeassistant/issues",
   "requirements": ["requests"],
-  "version": "1.0.8"
+  "version": "1.1.0"
 }
