@@ -1,10 +1,10 @@
 {
   "domain": "enet",
   "name": "eNet Smart Home",
-  "iot_class": "local_polling",
   "codeowners": ["@sweh"],
   "config_flow": true,
   "documentation": "https://github.com/sweh/enet_homeassistant",
+  "iot_class": "local_polling",
   "requirements": ["requests"],
   "version": "1.0.0"
 }
