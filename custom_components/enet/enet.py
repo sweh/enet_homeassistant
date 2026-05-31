@@ -31,6 +31,7 @@ class EnetClient:
         # jar = aiohttp.CookieJar(unsafe=True)
         # self._session = aiohttp.ClientSession(cookie_jar=jar)
         self._session = requests.Session()
+        self._session.verify = False
         self._debug_requests = False
         self._api_counter = 1
         self._cookie = ""
