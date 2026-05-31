@@ -4,7 +4,8 @@
 # https://github.com/mnordseth/enet-homeassistant/blob/main/custom_components/enet/aioenet.py
 
 import logging
-import requests
+import ssl
+import aiohttp
 
 log = logging.getLogger(__name__)
 
@@ -28,10 +29,7 @@ class EnetClient:
         if url.endswith("/"):
             url = url[:-1]
         self.baseurl = url
-        # jar = aiohttp.CookieJar(unsafe=True)
-        # self._session = aiohttp.ClientSession(cookie_jar=jar)
-        self._session = requests.Session()
-        self._session.verify = False
+        self._session = None
         self._debug_requests = False
         self._api_counter = 1
         self._cookie = ""
@@ -39,23 +37,39 @@ class EnetClient:
         self._raw_json = {}
         self.devices = []
 
+    async def _get_session(self):
+        """Get or create aiohttp session with SSL verification disabled."""
+        if self._session is None:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            self._session = aiohttp.ClientSession(connector=connector)
+        return self._session
+
+    async def _close_session(self):
+        """Close the aiohttp session."""
+        if self._session is not None:
+            await self._session.close()
+            self._session = None
+
     def auth_if_needed(func):
-        def auth_wrapper(self, *args, **kwargs):
+        async def auth_wrapper(self, *args, **kwargs):
             try:
-                return func(self, *args, **kwargs)
+                return await func(self, *args, **kwargs)
             except AuthError:
                 log.warning("Trying to re-authenticate...")
-                self.simple_login()
+                await self.simple_login()
 
-            return func(self, *args, **kwargs)
+            return await func(self, *args, **kwargs)
 
         return auth_wrapper
 
     @auth_if_needed
-    def request(self, url, method, params, get_raw=False):
-        return self._do_request(url, method, params, get_raw)
+    async def request(self, url, method, params, get_raw=False):
+        return await self._do_request(url, method, params, get_raw)
 
-    def _do_request(self, url, method, params, get_raw=False):
+    async def _do_request(self, url, method, params, get_raw=False):
         req = {
             "jsonrpc": "2.0",
             "method": method,
@@ -64,51 +78,52 @@ class EnetClient:
         }
         self._api_counter += 1
         log.info("Requesting %s%s %s", self.baseurl, url, method)
-        response = self._session.post(f"{self.baseurl}{url}", json=req)
-        if get_raw:
-            return response
-        if response.status_code >= 400:
-            log.warning(
-                "Request to %s failed with status %s",
-                response.request_info.url,
-                response.status,
-            )
-            return response
+        session = await self._get_session()
+        async with session.post(f"{self.baseurl}{url}", json=req) as response:
+            if get_raw:
+                return response
+            if response.status >= 400:
+                log.warning(
+                    "Request to %s failed with status %s",
+                    response.url,
+                    response.status,
+                )
+                return response
 
-        json = response.json()
-        if "error" in json:
-            e = "-> {} {} returned error: {}".format(url, method, json["error"])
-            print(json["error"])
-            if json["error"]["code"] in (-29998, -29997):
-                raise (AuthError)
+            json_data = await response.json()
+            if "error" in json_data:
+                e = "-> {} {} returned error: {}".format(url, method, json_data["error"])
+                print(json_data["error"])
+                if json_data["error"]["code"] in (-29998, -29997):
+                    raise (AuthError)
+                else:
+                    raise (Exception(e))
             else:
-                raise (Exception(e))
-        else:
-            if self._debug_requests:
-                print("-> {} {} returned: {}".format(url, method, json["result"]))
-        return json["result"]
+                if self._debug_requests:
+                    print("-> {} {} returned: {}".format(url, method, json_data["result"]))
+            return json_data["result"]
 
-    def simple_login(self):
+    async def simple_login(self):
         """Login to the Enet Server"""
         params = dict(userName=self.user, userPassword=self.passwd)
-        self._do_request(URL_MANAGEMENT, "userLogin", params)
-        self._do_request(
+        await self._do_request(URL_MANAGEMENT, "userLogin", params)
+        await self._do_request(
             URL_MANAGEMENT, "setClientRole", dict(clientRole="CR_VISU")
         )
 
-    def get_account(self):
+    async def get_account(self):
         """Return the current logged in user account"""
-        return self.request(URL_MANAGEMENT, "getAccount", {})
+        return await self.request(URL_MANAGEMENT, "getAccount", {})
 
-    def get_devices(self):
+    async def get_devices(self):
         """Get all the devices registered on the server"""
-        device_locations = self.get_device_locations()
+        device_locations = await self.get_device_locations()
         deviceUIDs = list(device_locations.keys())
         params = {
             "deviceUIDs": deviceUIDs,
             "filter": ".+\\\\.(SCV1|SCV2|SNA|PSN)\\\\[(.|1.|2.|3.)\\\\]+",
         }
-        result = self.request(URL_VIZ, "getDevicesWithParameterFilter", params)
+        result = await self.request(URL_VIZ, "getDevicesWithParameterFilter", params)
         raw_devices = result["devices"]
         self._raw_json = raw_devices
         devices = []
@@ -121,15 +136,15 @@ class EnetClient:
 
         return devices
 
-    def get_locations(self):
+    async def get_locations(self):
         """Get all locations"""
         params = {"locationUIDs": []}
-        result = self.request(URL_VIZ, "getLocations", params)
+        result = await self.request(URL_VIZ, "getLocations", params)
         return result["locations"]
 
-    def get_device_locations(self):
+    async def get_device_locations(self):
         """Return a dict of locations to device"""
-        locations = self.get_locations()
+        locations = await self.get_locations()
         device_to_loc = {}
 
         def recurse_locations(locations, parent=[], level=0):
@@ -149,9 +164,9 @@ class EnetClient:
         recurse_locations(locations)
         return device_to_loc
 
-    def get_scenes(self, only_libenet=True):
+    async def get_scenes(self, only_libenet=True):
         """Get all scene names and corresponding uid from the server"""
-        result = self.request(URL_SCENE, "getSceneActionUIDs", None)
+        result = await self.request(URL_SCENE, "getSceneActionUIDs", None)
         scenes = {}
         for scene in result["sceneActionUIDs"]:
             scene_uid = scene["sceneActionUID"]
@@ -161,10 +176,10 @@ class EnetClient:
             scenes[scene_name] = scene_uid
         return scenes
 
-    def activate_scene(self, scene_uid):
+    async def activate_scene(self, scene_uid):
         """Activate the specified scene UID"""
         params = {"actionUID": scene_uid}
-        self.request(URL_VIZ, "executeAction", params)
+        await self.request(URL_VIZ, "executeAction", params)
 
 
 known_actuators = [
@@ -373,9 +388,9 @@ class Channel:
                 main_func = input_func
         return main_func
 
-    def get_value(self):
+    async def get_value(self):
         params = {"deviceFunctionUID": self._output_device_function["uid"]}
-        current_value = self.device.client.request(
+        current_value = await self.device.client.request(
             URL_VIZ, "getCurrentValuesFromOutputDeviceFunction", params
         )
 
@@ -384,7 +399,7 @@ class Channel:
         self._last_value = value
         return value
 
-    def set_value(self, value):
+    async def set_value(self, value):
         input_function = self._input_device_function["uid"]
         value_param = self._value_template.copy()
         # try to cast to correct type...
@@ -398,15 +413,15 @@ class Channel:
 
         self.state = casted_value
         print("set_value()", params)
-        self.device.client.request(URL_VIZ, "callInputDeviceFunction", params)
+        await self.device.client.request(URL_VIZ, "callInputDeviceFunction", params)
 
-    def turn_off(self):
+    async def turn_off(self):
         log.info("%s turn_off()", self.name)
-        self.set_value(0)
+        await self.set_value(0)
 
-    def turn_on(self):
+    async def turn_on(self):
         log.info("%s turn_on()", self.name)
-        self.set_value(100)
+        await self.set_value(100)
 
     def __repr__(self):
         return "{}(Name: {} Type: {} Value: {})".format(
