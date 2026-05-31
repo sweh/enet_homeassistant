@@ -28,6 +28,9 @@ class EnetClient:
         self.passwd = passwd
         if url.endswith("/"):
             url = url[:-1]
+        # Ensure URL has a scheme
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
         self.baseurl = url
         self._session = None
         self._debug_requests = False

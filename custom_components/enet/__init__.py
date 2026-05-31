@@ -45,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         await client.simple_login()
     except Exception as err:
-        _LOGGER.error("Failed to connect to eNet server: %s", err)
+        _LOGGER.error("Failed to connect to eNet server: %s", err, exc_info=True)
         raise ConfigEntryNotReady from err
 
     hass.data[DOMAIN][entry.entry_id] = client
