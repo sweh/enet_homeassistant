@@ -47,7 +47,12 @@ class EnetClient:
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
             connector = aiohttp.TCPConnector(ssl=ssl_context)
-            self._session = aiohttp.ClientSession(connector=connector)
+            # The Enet server is typically addressed by IP. aiohttp's default
+            # cookie jar refuses to store cookies for IP-address hosts, which
+            # silently drops the session cookie set by userLogin and causes
+            # subsequent requests (e.g. setClientRole) to fail with AuthError.
+            cookie_jar = aiohttp.CookieJar(unsafe=True)
+            self._session = aiohttp.ClientSession(connector=connector, cookie_jar=cookie_jar)
         return self._session
 
     async def _close_session(self):
