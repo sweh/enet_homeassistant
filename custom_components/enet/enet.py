@@ -3,6 +3,7 @@
 # Copyright:
 # https://github.com/mnordseth/enet-homeassistant/blob/main/custom_components/enet/aioenet.py
 
+import asyncio
 import logging
 import ssl
 import aiohttp
@@ -40,12 +41,22 @@ class EnetClient:
         self._raw_json = {}
         self.devices = []
 
+    @staticmethod
+    def _build_ssl_context():
+        """Build an SSL context with verification disabled.
+
+        This performs blocking I/O (loading default certs) and must not be
+        called directly from the event loop.
+        """
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        return ssl_context
+
     async def _get_session(self):
         """Get or create aiohttp session with SSL verification disabled."""
         if self._session is None:
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
+            ssl_context = await asyncio.to_thread(self._build_ssl_context)
             connector = aiohttp.TCPConnector(ssl=ssl_context)
             # The Enet server is typically addressed by IP. aiohttp's default
             # cookie jar refuses to store cookies for IP-address hosts, which
