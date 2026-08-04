@@ -23,7 +23,7 @@ async def async_setup_entry(
     client: EnetClient = hass.data[DOMAIN][config_entry.entry_id]
 
     try:
-        devices = client.get_devices()
+        devices = await client.get_devices()
     except Exception as err:
         _LOGGER.error("Failed to fetch eNet devices: %s", err)
         return
@@ -55,28 +55,40 @@ class EnetCover(CoverEntity):
         self._channel = channel
         self._attr_name = name
         self._attr_unique_id = channel.uid
+        self._position: int | None = None
+
+    async def async_update(self) -> None:
+        """Fetch the current cover position."""
+        value = await self._channel.get_value()
+
+        try:
+            enet_position = int(value)
+        except (TypeError, ValueError):
+            self._position = None
+            return
+
+        # eNet: 0=open, 100=closed
+        # Home Assistant: 0=closed, 100=open
+        self._position = 100 - max(0, min(100, enet_position))
 
     @property
     def current_cover_position(self) -> int:
         """Return current position (0-100, where 100 is fully open)."""
-        value = self._channel.get_value()
-        # eNet uses 0-100 where 0 is open, 100 is closed
-        # HA uses 0=closed, 100=open
-        return 100 - value
+        return self._position
 
     @property
     def is_closed(self) -> bool:
         """Return True if cover is closed."""
-        return self.current_cover_position == 0
+        return self._position == 0
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close the cover."""
-        self._channel.set_value(100)
+        await self._channel.set_value(100)
         self.async_write_ha_state()
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
-        self._channel.set_value(0)
+        await self._channel.set_value(0)
         self.async_write_ha_state()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
@@ -84,7 +96,7 @@ class EnetCover(CoverEntity):
         position = kwargs.get("position", 0)
         # Convert from HA (0=closed, 100=open) to eNet (0=open, 100=closed)
         enet_value = 100 - position
-        self._channel.set_value(enet_value)
+        await self._channel.set_value(enet_value)
         self.async_write_ha_state()
 
     async def async_stop_cover(self, **kwargs: Any) -> None:

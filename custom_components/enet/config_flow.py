@@ -32,7 +32,7 @@ class EnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_USERNAME],
                     user_input[CONF_PASSWORD],
                 )
-                client.simple_login()
+                await client.simple_login()
             except Exception as err:
                 _LOGGER.error("Failed to connect to eNet: %s", err)
                 errors["base"] = "cannot_connect"

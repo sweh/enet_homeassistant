@@ -22,7 +22,7 @@ async def async_setup_entry(
     client: EnetClient = hass.data[DOMAIN][config_entry.entry_id]
 
     try:
-        devices = client.get_devices()
+        devices = await client.get_devices()
     except Exception as err:
         _LOGGER.error("Failed to fetch eNet devices: %s", err)
         return
@@ -63,13 +63,13 @@ class EnetLightSensor(SensorEntity):
         self._attr_name = name
         self._attr_unique_id = channel.uid
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the current illuminance value."""
+    async def async_update(self) -> None:
+        """Fetch the current temperature."""
         try:
-            return float(self._channel.get_value())
+            value = await self._channel.get_value()
+            self._attr_native_value = float(value)
         except (ValueError, TypeError):
-            return None
+            self._attr_native_value = None
 
 
 class EnetTemperatureSensor(SensorEntity):
@@ -86,10 +86,10 @@ class EnetTemperatureSensor(SensorEntity):
         self._attr_name = name
         self._attr_unique_id = channel.uid
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the current temperature value."""
+    async def async_update(self) -> None:
+        """Fetch the current temperature."""
         try:
-            return float(self._channel.get_value())
+            value = await self._channel.get_value()
+            self._attr_native_value = float(value)
         except (ValueError, TypeError):
-            return None
+            self._attr_native_value = None

@@ -22,7 +22,7 @@ async def async_setup_entry(
     client: EnetClient = hass.data[DOMAIN][config_entry.entry_id]
 
     try:
-        devices = client.get_devices()
+        devices = await client.get_devices()
     except Exception as err:
         _LOGGER.error("Failed to fetch eNet devices: %s", err)
         return
@@ -62,6 +62,7 @@ class EnetLight(LightEntity):
         self._attr_name = name
         self._attr_unique_id = channel.uid
         self._is_dimmable = is_dimmable
+        self._value: float | None = None
 
         if is_dimmable:
             self._attr_color_mode = ColorMode.BRIGHTNESS
@@ -70,20 +71,22 @@ class EnetLight(LightEntity):
             self._attr_color_mode = ColorMode.ONOFF
             self._attr_supported_color_modes = {ColorMode.ONOFF}
 
+    async def async_update(self) -> None:
+        """Fetch the current state."""
+        self._value = await self._channel.get_value()
+
     @property
     def brightness(self) -> int | None:
         """Return brightness level (0-255)."""
-        if not self._is_dimmable:
+        if not self._is_dimmable or self._value is None:
             return None
-        value = self._channel.get_value()
-        # Convert from 0-100 to 0-255
-        return int(value * 255 / 100)
+
+        return int(self._value * 255 / 100)
 
     @property
     def is_on(self) -> bool:
         """Return true if light is on."""
-        value = self._channel.get_value()
-        return value > 0
+        return self._value is not None and self._value > 0
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light."""
@@ -91,12 +94,12 @@ class EnetLight(LightEntity):
             brightness = kwargs["brightness"]
             # Convert from 0-255 to 0-100
             value = int(brightness * 100 / 255)
-            self._channel.set_value(value)
+            await self._channel.set_value(value)
         else:
-            self._channel.set_value(100)
+            await self._channel.set_value(100)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
-        self._channel.set_value(0)
+        await self._channel.set_value(0)
         self.async_write_ha_state()
