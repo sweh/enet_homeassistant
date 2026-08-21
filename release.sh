@@ -2,6 +2,6 @@
 
 set -e
 
-gh release create $@ \
-    --title "$@" \
+gh release create v$@ \
+    --title "v$@" \
     --generate-notes
