@@ -147,7 +147,7 @@ def test_requirements_updated():
     req_path = Path(__file__).parent / "requirements.txt"
     content = req_path.read_text()
     
-    assert "requests" in content, "requests library should be required"
+    assert "aiohttp" in content, "aiohttp library should be required"
     assert "HAP-python" not in content, "HAP-python should not be in requirements"
 
 
