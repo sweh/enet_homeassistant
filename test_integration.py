@@ -162,6 +162,113 @@ def test_no_homekit_files():
     assert not (root / "enet.py").exists(), "enet.py should only be in custom_components"
 
 
+def _load_enet_module():
+    """Import custom_components/enet/enet.py as a standalone module."""
+    import importlib.util
+
+    enet_path = Path(__file__).parent / "custom_components/enet/enet.py"
+    spec = importlib.util.spec_from_file_location("enet", enet_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class _FakeDevice:
+    """Minimal stand-in for a BaseEnetDevice, as needed by Channel.__init__."""
+
+    uid = "fake-device-uid"
+
+
+def _make_channel_raw(channel_type_id):
+    """Build a minimal raw channel dict for an unrecognized channel type."""
+    return {
+        "channelTypeID": channel_type_id,
+        "no": "1",
+        "effectArea": "Test Area",
+        "outputDeviceFunctions": [
+            {
+                "typeID": "FT_SOME_OUTPUT",
+                "currentValues": [{"valueTypeID": "VT_SWITCH", "value": 0}],
+            }
+        ],
+        "inputDeviceFunctions": [
+            {
+                "typeID": "FT_SOME_INPUT",
+                "currentValues": [{"valueTypeID": "VT_SWITCH", "value": 0}],
+            }
+        ],
+    }
+
+
+def test_channel_with_unknown_channel_type_does_not_crash():
+    """Regression test for #3: a channel type missing from channelconfig
+    must not raise AttributeError/TypeError when constructing a Channel.
+
+    Before the fix, channelconfig.get(self.channel_type) returned None for
+    an unrecognized channel type, and calling .get(...) on that None raised
+    AttributeError: 'NoneType' object has no attribute 'get'. A secondary
+    crash (TypeError) also existed in _build_value_template() when the
+    output device function could not be resolved.
+    """
+    enet = _load_enet_module()
+
+    assert "UNKNOWN_CHANNEL_TYPE" not in enet.channelconfig, (
+        "test fixture must use a channel type that is really absent from "
+        "channelconfig"
+    )
+
+    raw_channel = _make_channel_raw("UNKNOWN_CHANNEL_TYPE")
+
+    try:
+        channel = enet.Channel(_FakeDevice(), raw_channel)
+    except (AttributeError, TypeError) as exc:
+        raise AssertionError(
+            f"Channel() crashed on an unknown channel type: {exc!r}"
+        ) from exc
+
+    assert channel._output_device_function is None
+    assert channel._input_device_function is None
+    assert channel._value_template is None
+
+
+def test_actuator_does_not_crash_on_unknown_channel():
+    """Regression test for #3: Actuator.create_channels() must not let an
+    unrecognized channel type abort the whole device fetch. With the fix,
+    Channel() itself no longer raises for an unknown channel type (it just
+    resolves to a channel with no output/input function), so the channel is
+    created successfully; but even if Channel() did raise, the
+    try/except (TypeError, AttributeError) around it must stop that
+    exception from propagating out of create_channels().
+    """
+    enet = _load_enet_module()
+
+    raw_device = {
+        "uid": "fake-actuator-uid",
+        "installationArea": "Test Actuator",
+        "typeID": "DVT_TEST",
+        "batteryState": None,
+        "isSoftwareUpdateAvailable": False,
+        "deviceChannelConfigurationGroups": [
+            {
+                "deviceChannels": [
+                    _make_channel_raw("UNKNOWN_CHANNEL_TYPE"),
+                ]
+            }
+        ],
+    }
+
+    try:
+        actuator = enet.Actuator(client=None, raw=raw_device)
+    except (AttributeError, TypeError) as exc:
+        raise AssertionError(
+            f"Actuator.create_channels() crashed on an unknown channel "
+            f"type: {exc!r}"
+        ) from exc
+
+    assert len(actuator.channels) == 1
+    assert actuator.channels[0]._output_device_function is None
+
+
 if __name__ == "__main__":
     print("Running eNet Home Assistant Integration Tests\n")
     print("=" * 60)
@@ -179,6 +286,8 @@ if __name__ == "__main__":
         ("README updated", test_readme_updated),
         ("Requirements updated", test_requirements_updated),
         ("HomeKit files removed", test_no_homekit_files),
+        ("Channel survives unknown channel type", test_channel_with_unknown_channel_type_does_not_crash),
+        ("Actuator survives unknown channel type", test_actuator_does_not_crash_on_unknown_channel),
     ]
     
     passed = 0
