@@ -6,6 +6,6 @@
   "documentation": "https://github.com/sweh/enet_homeassistant",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/sweh/enet_homeassistant/issues",
-  "requirements": ["aiohttp"],
+  "requirements": [],
   "version": "1.3.6"
 }
