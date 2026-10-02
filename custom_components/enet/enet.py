@@ -316,7 +316,7 @@ class Sensor(BaseEnetDevice):
                 if device_channel["channelTypeID"] != "CT_DEVICE":
                     try:
                         c = Channel(self, device_channel)
-                    except TypeError:
+                    except (TypeError, AttributeError):
                         continue
                     self.channels.append(c)
 
@@ -340,7 +340,10 @@ class Actuator(BaseEnetDevice):
                     f"  ccg: {ccg} dc: {dc} Channel type: {device_channel['channelTypeID']} area: {device_channel['effectArea']}"
                 )
                 if device_channel["channelTypeID"] != "CT_DEVICE":
-                    c = Channel(self, device_channel)
+                    try:
+                        c = Channel(self, device_channel)
+                    except (TypeError, AttributeError):
+                        continue
                     self.channels.append(c)
 
                 # for odf, output_func in enumerate(
@@ -373,6 +376,8 @@ class Channel:
         self.state = 0
 
     def _build_value_template(self):
+        if self._output_device_function is None:
+            return None
         value_template = self._output_device_function["currentValues"][0]
         if "valueUID" in value_template:
             del value_template["valueUID"]
@@ -380,11 +385,14 @@ class Channel:
 
     def _find_output_function(self):
         main_func = None
+        config = channelconfig.get(self.channel_type)
+        if config is None:
+            return main_func
         for odf, output_func in enumerate(self.channel["outputDeviceFunctions"]):
             type_id = output_func["typeID"]
             value_type_id = output_func["currentValues"][0]["valueTypeID"]
             value = output_func["currentValues"][0]["value"]
-            main = channelconfig.get(self.channel_type).get("info") == type_id
+            main = config.get("info") == type_id
 
             if value_type_id == "VT_SCALING_RANGE_0_100_DEF_0":
                 self.has_brightness = True
@@ -399,9 +407,12 @@ class Channel:
 
     def _find_input_function(self):
         main_func = None
+        config = channelconfig.get(self.channel_type)
+        if config is None:
+            return main_func
         for idf, input_func in enumerate(self.channel["inputDeviceFunctions"]):
             type_id = input_func["typeID"]
-            main = channelconfig.get(self.channel_type).get("control") == type_id
+            main = config.get("control") == type_id
             if main:
                 print(f"    idf: {idf} type: {type_id} main: {main}")
                 main_func = input_func
