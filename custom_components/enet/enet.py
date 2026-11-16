@@ -211,6 +211,7 @@ known_actuators = [
     "DVT_S2A1",
     "DVT_SA1M",
     "DVT_SJA1",
+    "DVT_UP1AV",  # Gira blind actuator 5495xx
 ]
 
 known_sensors = [
