@@ -34,7 +34,7 @@ async def async_setup_entry(
             continue
 
         for channel in device.channels:
-            if channel.channel_type == "CT_1F03":  # Blinds
+            if channel.channel_type in ("CT_1F03", "CT_1F10"):  # Blinds
                 location = device.location.split(":")[-1]
                 entities.append(
                     EnetCover(client, channel, f"Jalousie {location}")

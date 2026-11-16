@@ -314,6 +314,22 @@ class Sensor(BaseEnetDevice):
                 print(
                     f"  ccg: {ccg} dc: {dc} Channel type: {device_channel['channelTypeID']} area: {device_channel['effectArea']}"
                 )
+                log.info(
+                    "Device %s type %s channel %s type %s",
+                    self.name,
+                    self.device_type,
+                    device_channel.get("no"),
+                    device_channel["channelTypeID"],
+                )
+                if device_channel["channelTypeID"] not in channelconfig and (
+                    device_channel["channelTypeID"] != "CT_DEVICE"
+                ):
+                    log.warning(
+                        "Unknown channel type %s on device %s (%s)",
+                        device_channel["channelTypeID"],
+                        self.name,
+                        self.device_type,
+                    )
                 if device_channel["channelTypeID"] != "CT_DEVICE":
                     try:
                         c = Channel(self, device_channel)
@@ -340,6 +356,22 @@ class Actuator(BaseEnetDevice):
                 print(
                     f"  ccg: {ccg} dc: {dc} Channel type: {device_channel['channelTypeID']} area: {device_channel['effectArea']}"
                 )
+                log.info(
+                    "Device %s type %s channel %s type %s",
+                    self.name,
+                    self.device_type,
+                    device_channel.get("no"),
+                    device_channel["channelTypeID"],
+                )
+                if device_channel["channelTypeID"] not in channelconfig and (
+                    device_channel["channelTypeID"] != "CT_DEVICE"
+                ):
+                    log.warning(
+                        "Unknown channel type %s on device %s (%s)",
+                        device_channel["channelTypeID"],
+                        self.name,
+                        self.device_type,
+                    )
                 if device_channel["channelTypeID"] != "CT_DEVICE":
                     try:
                         c = Channel(self, device_channel)
