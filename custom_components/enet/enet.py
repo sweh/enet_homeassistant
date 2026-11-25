@@ -212,6 +212,12 @@ known_actuators = [
     "DVT_SA1M",
     "DVT_SJA1",
     "DVT_UP1AV",  # Gira blind actuator 5495xx
+    "DVT_SA1R",  # 1 channel switch actuator rail mount
+    "DVT_SA1Z",  # 1 channel switch actuator intermediate plug 5448 02
+    "DVT_SA1MP",  # 1 channel switch actuator mini, potential-free 5424 00
+    "DVT_JA1R",  # 1 channel blind actuator rail mount
+    "DVT_JA1M",  # 1 channel blind actuator mini
+    "DVT_SD1M",  # 1 channel DALI control unit mini
 ]
 
 known_sensors = [
@@ -231,6 +237,17 @@ known_sensors = [
     "DVT_BS1BP",  # eNet motion detector
     "DVT_SF1S",  # eNet light sensor
     "DVT_WS4BJ",
+    "DVT_WS1BJ",
+    "DVT_WS2BJ",
+    "DVT_WS3BJ",
+    "DVT_WS1BJF50",
+    "DVT_WS1BJF50C",
+    "DVT_WS1BJF50L",
+    "DVT_HS1T",
+    "DVT_UP1A",  # eNet short-stroke button (operating top unit) 5492/5493
+    "DVT_ES1M",  # energy sensor 1 channel mini 5471 00
+    "DVT_ES1Z",  # energy sensor 1 channel intermediate plug
+    "DVT_ES4R",  # energy sensor 4 channel rail mount
 ]  # eNet radio transmitter module 4-gang
 
 channelconfig = {
